@@ -31,5 +31,19 @@ services:
       redpanda:
         condition: service_healthy
 
+  producer:
+    build: ./producer
+    container_name: producer
+    environment:
+      BOOTSTRAP_SERVERS: redpanda:9092
+      TOPIC: ticks
+      SYMBOLS: btcusdt,ethusdt,solusdt
+    volumes:
+      - ./producer:/app
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   redpanda-data:
