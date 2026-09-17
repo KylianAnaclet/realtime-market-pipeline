@@ -37,7 +37,7 @@ services:
     environment:
       BOOTSTRAP_SERVERS: redpanda:9092
       TOPIC: ticks
-      SYMBOLS: btcusdt,ethusdt,solusdt
+      SYMBOLS: btcusdt,ethusdt,solusdt,xrpusdt,dogeusdt,adausdt,bnbusdt,linkusdt,avaxusdt,maticusdt,dotusdt,ltcusdt,trxusdt,shibusdt,nearusdt,uniusdt,atomusdt,filusdt,aptusdt,arbusdt,opusdt,injusdt,suiusdt,seiusdt,tiausdt,rndrusdt,imxusdt,grtusdt,algousdt,vetusdt,etcusdt,hbarusdt,icpusdt,aaveusdt,mkrusdt,sandusdt,manausdt,axsusdt,ftmusdt,egldusdt
     volumes:
       - ./producer:/app
     depends_on:
@@ -45,5 +45,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  stats:
+    build: ./consumer
+    container_name: stats
+    environment:
+      BOOTSTRAP_SERVERS: redpanda:9092
+      TOPIC: ticks
+      GROUP_ID: tick-stats
+      START_AT: latest
+    volumes:
+      - ./consumer:/app
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
 volumes:
   redpanda-data:
+
