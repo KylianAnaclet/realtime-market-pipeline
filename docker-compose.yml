@@ -59,6 +59,49 @@ services:
       redpanda:
         condition: service_healthy
 
+  jobmanager:
+    build: ./flink
+    container_name: jobmanager
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        jobmanager.memory.process.size: 600m
+    volumes:
+      - ./flink/sql:/opt/sql
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  taskmanager:
+    build: ./flink
+    container_name: taskmanager
+    command: taskmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        taskmanager.memory.process.size: 1400m
+        taskmanager.numberOfTaskSlots: 2
+    depends_on:
+      - jobmanager
+
+  sqlrunner:
+    build: ./flink
+    volumes:
+      - ./flink/sql:/opt/sql
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        CONF=/opt/flink/conf/config.yaml
+        [ -f "$$CONF" ] || CONF=/opt/flink/conf/flink-conf.yaml
+        printf "\nexecution.target: local\n" >> "$$CONF"
+        exec /opt/flink/bin/sql-client.sh -f /opt/sql/ohlc.sql
+
 volumes:
   redpanda-data:
 

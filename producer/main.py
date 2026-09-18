@@ -21,8 +21,8 @@ def to_tick(data: dict) -> dict:
     """
     symbol = data['s'] # str
     trade_id = data['t'] # int
-    price = float(data['p']) # Binance sends the price in string
-    qty = float(data['q']) # same as price
+    price = data['p'] # Binance sends the price in string
+    qty = data['q'] # same as price
     event_time_ms = data['T'] # int
     ingest_time_ms = int(time.time() * 1000)
     is_buyer_maker = data['m'] # bool

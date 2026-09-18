@@ -38,3 +38,45 @@ gap to ingest time is wider and the watermark will have to tolerate more
 delay. I also trust the exchange's clock, which I don't control.
 
 
+### D-004 — Flink SQL instead of PyFlink
+*2026-09-18*
+
+**Choice:** Write the job as Flink SQL, run from the SQL client.
+**Instead of:** PyFlink (the Python API).
+**Why:** There is no Python package of Flink built for Linux on ARM, so
+installing it in a container on my M1 would compile it from source. SQL
+runs on the same engine with the same watermarks and the same state
+handling, and the aggregation is 30 lines instead of 150.
+**Trade-off accepted:** No custom state logic, which this aggregation
+doesn't need. I'd use the DataStream API if it did.
+
+
+### D-005 — 2-second watermark
+*2026-09-18*
+
+**Choice:** Close a window 2 seconds after the newest event time seen.
+**Instead of:** Zero, which my measurements would have allowed.
+**Why:** I measured zero out-of-order events over 2.3M messages, but that
+zero comes from having a single producer on a single connection (see
+MEASUREMENTS.md). It would break with a second producer or another
+source. Waiting 2 seconds on a 60-second window costs a little freshness;
+not waiting produces silently wrong candles. The costs aren't symmetric,
+so I take the cheap safe side.
+**Trade-off accepted:** Candles are published about 2 seconds later than
+they could be.
+
+### D-006 — Local execution mode (temporary)
+*2026-09-18*
+
+**Choice:** Run the SQL job inside the client process, in its own
+container, with no Flink cluster.
+**Instead of:** Submitting to the JobManager/TaskManager cluster, which
+is what the repo is set up for.
+**Why:** Submitting to the cluster fails on an upstream bug in the
+multipart decoder Flink bundles: the upload is split so that a line
+break falls between two chunks and the decoder returns null. It is not
+configuration-dependent and changing Flink version didn't help.
+**Trade-off accepted:** This is a workaround, not a deployment. In this
+mode there is no fault tolerance and no exactly-once: stopping the
+container loses the windows in flight. To be revisited when the pipeline
+needs the cluster for checkpointing and backpressure metrics.
